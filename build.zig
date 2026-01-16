@@ -20,23 +20,23 @@ pub fn build(b: *std.Build) !void {
     });
 
     if (amalgamated) {
-        lib.addCSourceFile(.{
+        lib.root_module.addCSourceFile(.{
             .file = b.path("lib/src/lib.c"),
             .flags = &.{"-std=c11"},
         });
     } else {
         const files = try findSourceFiles(b);
         defer b.allocator.free(files);
-        lib.addCSourceFiles(.{
+        lib.root_module.addCSourceFiles(.{
             .root = b.path("lib/src"),
             .files = files,
             .flags = &.{"-std=c11"},
         });
     }
 
-    lib.addIncludePath(b.path("lib/include"));
-    lib.addIncludePath(b.path("lib/src"));
-    lib.addIncludePath(b.path("lib/src/wasm"));
+    lib.root_module.addIncludePath(b.path("lib/include"));
+    lib.root_module.addIncludePath(b.path("lib/src"));
+    lib.root_module.addIncludePath(b.path("lib/src/wasm"));
 
     lib.root_module.addCMacro("_POSIX_C_SOURCE", "200112L");
     lib.root_module.addCMacro("_DEFAULT_SOURCE", "");
@@ -46,9 +46,9 @@ pub fn build(b: *std.Build) !void {
     if (wasm) {
         if (b.lazyDependency(wasmtimeDep(target.result), .{})) |wasmtime| {
             lib.root_module.addCMacro("TREE_SITTER_FEATURE_WASM", "");
-            lib.addSystemIncludePath(wasmtime.path("include"));
-            lib.addLibraryPath(wasmtime.path("lib"));
-            if (shared) lib.linkSystemLibrary("wasmtime");
+            lib.root_module.addSystemIncludePath(wasmtime.path("include"));
+            lib.root_module.addLibraryPath(wasmtime.path("lib"));
+            if (shared) lib.root_module.linkSystemLibrary("wasmtime", .{});
         }
     }
 
@@ -125,11 +125,11 @@ pub fn wasmtimeDep(target: std.Target) []const u8 {
 fn findSourceFiles(b: *std.Build) ![]const []const u8 {
     var sources: std.ArrayListUnmanaged([]const u8) = .empty;
 
-    var dir = try b.build_root.handle.openDir("lib/src", .{ .iterate = true });
+    var dir = try std.Io.Dir.openDir(.cwd(), b.graph.io, "lib/src", .{ .iterate = true });
     var iter = dir.iterate();
-    defer dir.close();
+    defer dir.close(b.graph.io);
 
-    while (try iter.next()) |entry| {
+    while (try iter.next(b.graph.io)) |entry| {
         if (entry.kind != .file) continue;
         const file = entry.name;
         const ext = std.fs.path.extension(file);
