@@ -17,5 +17,12 @@ Tree-sitter is a parser generator tool and an incremental parsing library. It ca
 - [Wasm binding](lib/binding_web/README.md)
 - [Command-line interface](crates/cli/README.md)
 
+## Zig build
+
+With Zig 0.17.0, `zig build` installs the static C runtime and public headers.
+Use `-Dbuild-shared=true` for a shared library or `-Damalgamated=true` to
+compile the amalgamated source. Wasm support remains opt-in with
+`-Denable-wasm=true`.
+
 [discord]: https://img.shields.io/discord/1063097320771698699?logo=discord&label=discord
 [matrix]: https://img.shields.io/matrix/tree-sitter-chat%3Amatrix.org?logo=matrix&label=matrix
